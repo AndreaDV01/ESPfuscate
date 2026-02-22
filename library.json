@@ -1,0 +1,20 @@
+{
+  "name": "ESPfuscate",
+  "version": "1.0.0",
+  "description": "ESPfuscate avoids to leave plain text in the binary. It's compatible with ESP32 all families, in Arduino and ESP-IDF frameworks.",
+  "keywords": "esp32, security, encryption, obfuscation, aes, nvs, privacy",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/AndreaDV01/ESPfuscate.git"
+  },
+  "authors": [
+    {
+      "name": "AndreaDV01",
+      "maintainer": true
+    }
+  ],
+  "license": "MIT",
+  "frameworks": "arduino, espidf",
+  "platforms": "espressif32",
+  "headers": "ESPfuscate.h"
+}

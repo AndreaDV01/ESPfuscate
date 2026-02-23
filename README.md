@@ -144,10 +144,6 @@ Security is a system property, not a library feature.
 
 ------------------------------------------------------------------------
 
-## License
-
-Specify your license here (MIT / Apache 2.0 / etc).
-
 
 platformio.ini example:
 

@@ -20,10 +20,14 @@ bool try_connect();
 void do_ping();
 String readSerial(bool hide_input = false);
 
+ESPfuscate::RunTimeStore store; 
+
 void setup() {
     Serial.begin(115200);
     delay(2000);
-    Serial.println("\n--- ESPfuscate Security Demo (Preferences version) ---");
+    Serial.println("\n--- ESPfuscate Security Demo ---");
+
+    store.begin();
 
     // Note: Preferences.begin() internally initializes the NVS partition
     // If credentials are not found, it starts provisioning
@@ -46,42 +50,44 @@ void handle_provisioning() {
     Serial.print("Insert Password: ");
     String pass = readSerial(true);
 
-    ESPfuscate::Sealed s_ssid, s_pass;
+    ESPfuscate::SealedBuffer<64> s_ssid, s_pass;
 
     // Encrypt credentials
-    ESPfuscate::store.seal_string(ssid.c_str(), s_ssid);
-    ESPfuscate::store.seal_string(pass.c_str(), s_pass);
+    store.seal_string(ssid.c_str(), s_ssid);
+    store.seal_string(pass.c_str(), s_pass);
 
     // Save using Preferences (which uses NVS internally)
     preferences.begin(PREF_NAMESPACE, false);
     // We use putBytes to save the binary 'Sealed' container
-    preferences.putBytes(KEY_SSID, &s_ssid, sizeof(ESPfuscate::Sealed));
-    preferences.putBytes(KEY_PASS, &s_pass, sizeof(ESPfuscate::Sealed));
+    preferences.putBytes(KEY_SSID, &s_ssid, sizeof(s_ssid));
+    preferences.putBytes(KEY_PASS, &s_pass, sizeof(s_pass));
     preferences.end();
 
     Serial.println("Credentials encrypted and saved to Flash via Preferences.");
 }
 
 bool try_connect() {
-    ESPfuscate::Sealed s_ssid, s_pass;
+    ESPfuscate::SealedBuffer<64> s_ssid, s_pass;
     
     preferences.begin(PREF_NAMESPACE, true); //Read-Only mode
     
     // Check if keys exist
     if (!preferences.isKey(KEY_SSID) || !preferences.isKey(KEY_PASS)) {
         preferences.end();
+        Serial.println("- Credentials not found in Preferences.");
         return false;
     }
 
     // Load bytes directly into the Sealed container
-    preferences.getBytes(KEY_SSID, &s_ssid, sizeof(ESPfuscate::Sealed));
-    preferences.getBytes(KEY_PASS, &s_pass, sizeof(ESPfuscate::Sealed));
+    preferences.getBytes(KEY_SSID, &s_ssid, sizeof(s_ssid));
+    preferences.getBytes(KEY_PASS, &s_pass, sizeof(s_pass));
     preferences.end();
 
     ESPfuscate::SecureBuffer<64> ssid, pass;
 
-    if (ESPfuscate::store.open_string(s_ssid, ssid.c_str(), ssid.size()) != ESP_OK ||
-        ESPfuscate::store.open_string(s_pass, pass.c_str(), pass.size()) != ESP_OK) {
+    if (store.open_string(s_ssid, ssid.c_str(), ssid.size()) != ESP_OK ||
+        store.open_string(s_pass, pass.c_str(), pass.size()) != ESP_OK) {
+        Serial.println("- Failed to decrypt credentials.");
         return false;
     }
 

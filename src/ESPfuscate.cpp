@@ -6,7 +6,7 @@ extern "C" {
   #include "nvs.h"
   #include "esp_efuse.h"
   #include "mbedtls/gcm.h"
-  #include "mbedtls/md.h"
+  #include "mbedtls/hkdf.h"  //#include "mbedtls/md.h"
 }
 
 namespace ESPfuscate {
@@ -17,6 +17,7 @@ void secure_bzero(void* p, size_t n) {
 }
 
 esp_err_t RunTimeStore::begin(bool force_key_overwrite) {
+  LockGuard lock(*this);
   nvs_handle_t h;
   esp_err_t err = nvs_open(OBF_NVS_NAMESPACE, NVS_READWRITE, &h);
   if (err != ESP_OK) return err;
@@ -55,6 +56,7 @@ int RunTimeStore::derive_key_from_root_and_chip() {
 
   static const uint8_t info[] = OBF_HKDF_INFO;
   static const uint8_t pepper[] = OBF_PEPPER;
+  //static const uint8_t pepper[] = {(uint8_t*)OBF_PEPPER};
 
   uint8_t msg[6 + sizeof(info) - 1 + sizeof(pepper) - 1];
   size_t offset = 0;
@@ -77,19 +79,15 @@ int RunTimeStore::derive_key_from_root_and_chip() {
 }
 
 esp_err_t RunTimeStore::seal_bytes(const uint8_t* pt, size_t pt_len, Sealed& out, const char* aad, size_t aad_len) const {
-  bool auto_init = !key_ready_;
-  
-  // If not ready, try to initialize on the fly
-  if (auto_init) {
-    // Note: we use const_cast because seal_bytes is const but begin() modifies the state
-    if (const_cast<RunTimeStore*>(this)->begin() != ESP_OK) return ESP_ERR_INVALID_STATE;
-  }
+  // Note: LockGuard needs to be made compatible with const context, or use const_cast
+  LockGuard lock(const_cast<RunTimeStore&>(*this));
 
+  if(key_ready_ == false) return ESP_ERR_INVALID_STATE;
   if (!pt && pt_len) return ESP_ERR_INVALID_ARG;
-  if (pt_len > OBF_MAX_CT) return ESP_ERR_INVALID_SIZE;
+  if (pt_len > out.ct_capacity) return ESP_ERR_INVALID_SIZE; //OBF_MAX_CT
 
   out.pt_len = static_cast<uint16_t>(pt_len);
-  out.ct_len = static_cast<uint16_t>(pt_len);
+  //out.ct_capacity = static_cast<uint16_t>(pt_len);
   esp_fill_random(out.nonce.data(), out.nonce.size());
 
   mbedtls_gcm_context gcm;
@@ -100,13 +98,11 @@ esp_err_t RunTimeStore::seal_bytes(const uint8_t* pt, size_t pt_len, Sealed& out
     rc = mbedtls_gcm_crypt_and_tag(&gcm, MBEDTLS_GCM_ENCRYPT, pt_len,
                                    out.nonce.data(), out.nonce.size(),
                                    reinterpret_cast<const uint8_t*>(aad), aad_len,
-                                   pt, out.ct.data(),
+                                   pt, out.ct, // out.ct.data(),
                                    out.tag.size(), out.tag.data());
   }
   mbedtls_gcm_free(&gcm);
-
-  if (auto_init)  const_cast<RunTimeStore*>(this)->flush();
-
+  
   return (rc == 0) ? ESP_OK : ESP_FAIL;
 }
 
@@ -116,15 +112,12 @@ esp_err_t RunTimeStore::seal_string(const char* pt, Sealed& out, const char* aad
 }
 
 esp_err_t RunTimeStore::open_bytes(const Sealed& in, uint8_t* pt_out, size_t pt_cap, const char* aad, size_t aad_len) const {
-  bool auto_init = !key_ready_;
-  
-  if (auto_init) {
-    if (const_cast<RunTimeStore*>(this)->begin() != ESP_OK) return ESP_ERR_INVALID_STATE;
-  }
+  LockGuard lock(const_cast<RunTimeStore&>(*this));
 
+  if(key_ready_ == false) return ESP_ERR_INVALID_STATE;
   if (!pt_out && pt_cap) return ESP_ERR_INVALID_ARG;
   const size_t pt_len = in.pt_len;
-  if (pt_len > in.ct_len || pt_len > pt_cap) return ESP_ERR_INVALID_SIZE;
+  if (pt_len > in.ct_capacity || pt_len > pt_cap) return ESP_ERR_INVALID_SIZE;
 
   mbedtls_gcm_context gcm;
   mbedtls_gcm_init(&gcm);
@@ -135,13 +128,9 @@ esp_err_t RunTimeStore::open_bytes(const Sealed& in, uint8_t* pt_out, size_t pt_
                                   in.nonce.data(), in.nonce.size(),
                                   reinterpret_cast<const uint8_t*>(aad), aad_len,
                                   in.tag.data(), in.tag.size(),
-                                  in.ct.data(), pt_out);
+                                  in.ct, pt_out);  //in.ct.data()
   }
   mbedtls_gcm_free(&gcm);
-
-  if (auto_init) {
-    const_cast<RunTimeStore*>(this)->flush();
-  }
 
   return (rc == 0) ? ESP_OK : ESP_ERR_INVALID_CRC;
 }
@@ -157,15 +146,14 @@ esp_err_t RunTimeStore::open_string(const Sealed& in, char* out, size_t out_cap,
 }
 
 void RunTimeStore::flush() {
-  secure_bzero(key_.data(), key_.size());
-  secure_bzero(root_.data(), root_.size());
+  LockGuard lock(*this);
+  mbedtls_platform_zeroize(key_.data(), key_.size());
+  mbedtls_platform_zeroize(root_.data(), root_.size());
   key_ready_ = false;
 }
 
 RunTimeStore::~RunTimeStore() {
   flush();
 }
-
-RunTimeStore store; 
 
 } // namespace ESPfuscate

@@ -10,10 +10,11 @@
 #include <cstring>
 #include <array>
 #include "esp_err.h"
+#include "freertos/FreeRTOS.h"
+#include "freertos/semphr.h"
 
-#ifndef OBF_SALT
-#define OBF_SALT 0xA5C3F19Du
-#warning "Using default salt. For better security, define your own OBF_SALT. (ex.: in build flags -DOBF_SALT=0x12345678u)"
+#ifndef OBF_HKDF_INFO
+#define OBF_HKDF_INFO "ESPfuscateV0.1"
 #endif
 
 #ifndef OBF_NVS_NAMESPACE
@@ -24,17 +25,14 @@
 #define OBF_NVS_ROOTKEY "rk32"
 #endif
 
-#ifndef OBF_HKDF_INFO
-#define OBF_HKDF_INFO "OBFUSCATE-aesgcm-v0.1"
-#endif
-
-#ifndef OBF_MAX_CT
-#define OBF_MAX_CT 128
+#ifndef OBF_SALT
+#define OBF_SALT "sofnir"//0xA5C3F19Du
+#warning "Using default parameter! For better security, define your own OBF_SALT. (ex.: in build flags -DOBF_SALT=0x12345678u)"
 #endif
 
 #ifndef OBF_PEPPER
 #define OBF_PEPPER "38hx2g03421j4h1g5ap"
-#warning "Using default pepper. For better security, define your own OBF_PEPPER. (ex.: in build flags -DOBF_PEPPER=\"my_secret_pepper\" )"
+#warning "Using default parameter! For better security, define your own OBF_PEPPER. (ex.: in build flags -DOBF_PEPPER=\"my_secret_pepper\" )"
 #endif
 
 namespace ESPfuscate {
@@ -65,6 +63,8 @@ constexpr uint32_t mix32(uint32_t x) {
   return x;
 }
 
+static constexpr uint32_t pepper_hash = fnv1a32(OBF_PEPPER, sizeof(OBF_PEPPER) - 1);
+
 struct XorStream {
   uint32_t s;
   constexpr explicit XorStream(uint32_t seed) : s(seed) {}
@@ -83,7 +83,7 @@ constexpr uint32_t salt_from_occurrence(uint32_t counter, uint32_t line, uint32_
   x ^= rotl32(counter * 0x85ebca6bu, 7);
   x ^= rotl32(line    * 0xc2b2ae35u, 11);
   x ^= file_hash;
-  x ^= OBF_SALT;
+  x ^= (uint32_t)OBF_SALT;
   return mix32(x);
 }
 
@@ -95,10 +95,11 @@ struct ObfLit {
   uint32_t salt_occ{0};
 
   constexpr ObfLit(const char (&plain)[N], uint32_t salt_occ_)
-    : seed_base(mix32(fnv1a32(plain, N) ^ uint32_t(N) ^ 0x31415927u)),
-      salt_occ(salt_occ_) {
+    : seed_base(mix32(pepper_hash ^ uint32_t(N) ^ 0x31415927u)), salt_occ(salt_occ_)
+  {
     XorStream xs(mix32(seed_base ^ salt_occ));
-    for (size_t i = 0; i < N; ++i) enc[i] = static_cast<uint8_t>(plain[i]) ^ xs.next();
+    for (size_t i = 0; i < N; ++i)
+      enc[i] = static_cast<uint8_t>(plain[i]) ^ xs.next();
   }
 
   // Raw bytes: no terminator
@@ -126,7 +127,7 @@ struct ObfLit {
 #define OBFUSCATE_SALT_OCC (ESPfuscate::salt_from_occurrence((uint32_t)__COUNTER__, (uint32_t)__LINE__, (uint32_t)OBFUSCATE_FILEHASH))
 #define OBFUSCATE(str_lit) (ESPfuscate::ObfLit<sizeof(str_lit)>(str_lit, (uint32_t)OBFUSCATE_SALT_OCC))
 
-// -------------------- SecureBuffer RAII --------------------
+//-------------------- SecureBuffer RAII --------------------
 template <size_t N>
 struct SecureBuffer {
   std::array<uint8_t, N> b{};
@@ -139,15 +140,30 @@ struct SecureBuffer {
 
 // -------------------- sealed container --------------------
 struct Sealed {
-  uint8_t version = 1;
-  std::array<uint8_t, 12> nonce{};
-  std::array<uint8_t, 16> tag{};
-  std::array<uint8_t, OBF_MAX_CT> ct{};
+    uint8_t version = 1;
+    std::array<uint8_t, 12> nonce{};
+    std::array<uint8_t, 16> tag{};
+    uint8_t* ct = nullptr;   
+    uint16_t ct_capacity = 0; 
+    uint16_t pt_len = 0;    
 
-  uint16_t pt_len{0};
-  uint16_t ct_len{0};
+    protected:
+        Sealed(uint8_t* storage, uint16_t cap) : ct(storage), ct_capacity(cap) {}
+};
 
-  ~Sealed() { secure_bzero(ct.data(), ct.size()); secure_bzero(tag.data(), tag.size()); secure_bzero(nonce.data(), nonce.size()); }
+// La classe "Plug & Play" per l'utente: alloca la memoria sullo stack
+template <size_t N>
+struct SealedBuffer : public Sealed {
+    uint8_t storage[N]; // La memoria fisica è qui!
+
+    SealedBuffer() : Sealed(storage, N) {
+        memset(storage, 0, N);
+    }
+
+    ~SealedBuffer() {
+        // Pulizia automatica della memoria quando esce dallo scope
+        ESPfuscate::secure_bzero(storage, N);
+    }
 };
 
 // -------------------- runtime engine (implemented in .cpp) --------------------
@@ -158,32 +174,48 @@ public:
 
   bool ready() const;
 
-  // Seal arbitrary bytes (pt_len <= OBF_MAX_CT)
-  esp_err_t seal_bytes(const uint8_t* pt, size_t pt_len, Sealed& out, const char* aad = "default", size_t aad_len = 7) const;
+  esp_err_t seal_bytes(const uint8_t* pt, size_t pt_len, Sealed& out, const char* aad = OBF_HKDF_INFO, size_t aad_len = sizeof(OBF_HKDF_INFO) - 1) const;
 
-  // Seal arbitrary string (len <= OBF_MAX_CT)
-  esp_err_t seal_string(const char* pt, Sealed& out, const char* aad = "default", size_t aad_len = 7) const;
+  esp_err_t seal_string(const char* pt, Sealed& out, const char* aad = OBF_HKDF_INFO, size_t aad_len = sizeof(OBF_HKDF_INFO) - 1) const;
 
   // Open arbitrary bytes (no terminator)
-  esp_err_t open_bytes(const Sealed& in, uint8_t* pt_out, size_t pt_cap, const char* aad = "default", size_t aad_len = 7) const;
+  esp_err_t open_bytes(const Sealed& in, uint8_t* pt_out, size_t pt_cap, const char* aad = OBF_HKDF_INFO, size_t aad_len = sizeof(OBF_HKDF_INFO) - 1) const;
 
   // Open as C-string: guarantees '\0' (requires out_cap >= in.pt_len + 1)
-  esp_err_t open_string(const Sealed& in, char* out, size_t out_cap, const char* aad = "default", size_t aad_len = 7) const;
+  esp_err_t open_string(const Sealed& in, char* out, size_t out_cap, const char* aad = OBF_HKDF_INFO, size_t aad_len = sizeof(OBF_HKDF_INFO) - 1) const;
 
   void flush();
 
   ~RunTimeStore();
 
-  //uint8_t* derived_key() { return key_.data(); }
+private:  // Internal function to derive the encryption key from root and chip info. Called by begin() if needed.
 
-private:
   int derive_key_from_root_and_chip();
 
   std::array<uint8_t, 32> root_{};
   std::array<uint8_t, 32> key_{};
   bool key_ready_{false};
-};
 
-extern RunTimeStore store; 
+// Simple mutex for thread safety (e.g. if begin() is called while another operation is in progress)
+  StaticSemaphore_t mutex_buf_{};
+  SemaphoreHandle_t mutex_{nullptr};
+
+  inline void ensure_mutex_() {
+    if (mutex_ == nullptr)  mutex_ = xSemaphoreCreateMutexStatic(&mutex_buf_);
+  }
+
+  struct LockGuard {
+    RunTimeStore& s;
+    explicit LockGuard(RunTimeStore& store) : s(store) {
+      s.ensure_mutex_();
+      xSemaphoreTake(s.mutex_, portMAX_DELAY);
+    }
+    ~LockGuard() {
+      xSemaphoreGive(s.mutex_);
+    }
+    LockGuard(const LockGuard&) = delete;
+    LockGuard& operator=(const LockGuard&) = delete;
+  };
+};
 
 } // namespace ESPfuscate

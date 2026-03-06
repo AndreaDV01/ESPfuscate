@@ -109,8 +109,10 @@ bool try_connect() {
 }
 
 void do_ping() {
-    ESPfuscate::SecureBuffer<64> host;
-    target_host_e.decrypt_string(host.c_str(), host.size());
+    // ESPfuscate::SecureBuffer<64> host;
+    // target_host_e.decrypt_string(host.c_str(), host.size());
+
+    ESPfuscate::SecureBuffer<64> host = target_host_e.decrypt_string();
 
     Serial.printf("\nPing to %s ", host.c_str());
     

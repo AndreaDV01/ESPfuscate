@@ -110,6 +110,12 @@ struct ObfLit {
     for (size_t i = 0; i < n; ++i) out[i] = enc[i] ^ xs.next();
   }
 
+  SecureBuffer<N> decrypt_bytes() const {
+    SecureBuffer<N> buf;
+    decrypt_bytes(buf.data(), buf.size());
+    return buf;
+  }
+
   // C-string: guarantees '\0'
   inline void decrypt_string(char* out, size_t out_cap) const {
     if (!out || out_cap == 0) return;
@@ -118,6 +124,12 @@ struct ObfLit {
     XorStream xs(mix32(seed_base ^ salt_occ));
     for (size_t i = 0; i < n; ++i) out[i] = static_cast<char>(enc[i] ^ xs.next());
     out[n] = '\0';
+  }
+
+  SecureBuffer<N> decrypt_string() const {
+    SecureBuffer<N> buf;
+    decrypt_string(buf.c_str(), buf.size());
+    return buf;
   }
 
   static constexpr size_t plain_size = N;

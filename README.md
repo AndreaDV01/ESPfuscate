@@ -1,163 +1,147 @@
-# ESPfuscate
+# 🛡️ ESPfuscate
 
-ESPfuscate is a lightweight security utility for ESP32-based systems
-designed to protect sensitive data stored on the device and reduce
-exposure of secrets in firmware binaries.
+[![PlatformIO Registry](https://img.shields.io/badge/PlatformIO-Registry-orange?logo=platformio)](https://registry.platformio.org/)
+[![Framework](https://img.shields.io/badge/Framework-Arduino%20%7C%20ESP--IDF-blue)](#)
+[![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 
-It combines runtime encryption with compile-time string obfuscation to
-provide layered protection suitable for embedded environments with
-limited resources.
+**ESPfuscate** is a lightweight security library for the ESP32 ecosystem designed to protect sensitive strings such as API keys, WiFi credentials, and authentication tokens.
 
-------------------------------------------------------------------------
+It combines **compile-time obfuscation** and **hardware-bound runtime encryption** to make firmware extraction and cloning attacks significantly harder.
 
-## Features
+ESPfuscate is compatible with both **Arduino** and **ESP-IDF** frameworks and is designed to have **minimal runtime overhead**.
 
--   AES-256-GCM authenticated encryption
--   Device-bound key derivation
--   Compile-time string obfuscation
--   OTA credential protection
--   ESP-IDF and Arduino compatible
--   Designed for low overhead embedded deployment
+---
 
-------------------------------------------------------------------------
+## 💭 The problem
+Many ESP32 projects embed secrets directly inside the firmware.
 
-## Security Model
+When a global variable or `#define` is declared, that value ends up directly inside the compiled `firmware.bin` file in **plain text**.
 
-ESPfuscate is designed to protect:
+This becomes critical when those values include API endpoints, passwords, tokens, or other sensitive data, because it's as easy as open the file `.bin` as a text file to read them.
 
--   WiFi credentials
--   API tokens
--   OTA authentication data
--   Local configuration secrets
+## 💡 The solution
+Espressif already solved this problem with ***Flash Encryption***, but it has 2 major limitations.
 
-It mitigates:
+#### 1️⃣ The encryption is on the HW
+The encryption is executed on the ESP32 after the uploading process, so your binary file is still vulnerable, if not in the HW.
 
--   Flash dumping
--   Firmware extraction
--   Static binary inspection
--   Accidental credential exposure
+#### 2️⃣ It's not reversible
+If you activate this feature you are burning an Efuse forever *( for security reason )*, so no afterthoughts.
 
-It does NOT protect against:
+## 🚀 So why ESPfuscate?
 
--   Physical invasive attacks
--   Compromised bootloaders
--   Fully privileged runtime attackers
+**ESPfuscate** is intended for simple or moderately sensitive applications, when you want to protect secrets without building an unbreakable security system.
 
-Security in embedded systems is always layered. ESPfuscate is one layer,
-not the entire defense strategy.
-
-------------------------------------------------------------------------
-
-## Flash Encryption (IMPORTANT)
-
-ESP32 Flash Encryption is the strongest protection available against
-firmware extraction.
-
-Without Flash Encryption: - Encrypted data blobs can still be copied
-from flash - Attackers can perform offline analysis - Reverse
-engineering risk remains significant
-
-With Flash Encryption enabled: - Flash contents are encrypted at rest -
-Keys never leave the chip - Firmware dumping becomes significantly
-harder
-
-ESPfuscate is designed to work without Flash Encryption, but enabling
-Flash Encryption is strongly recommended for production devices.
-
-------------------------------------------------------------------------
-
-## OTA Server Security (CRITICAL)
-
-Securing OTA updates is mandatory.
-
-If the OTA server is compromised, attackers can deploy malicious
-firmware regardless of device-side protections.
-
-Recommended protections:
-
--   HTTPS with certificate validation
--   Signed firmware images
--   Server authentication tokens
--   Restricted OTA endpoints
--   Update integrity verification
-
-Device encryption alone cannot protect against a malicious firmware
-update.
-
-OTA security must be treated as part of the trusted computing base.
-
-------------------------------------------------------------------------
-
-## Compile-Time Obfuscation
-
-Compile-time obfuscation hides plaintext strings from firmware binaries.
-
-This protects against:
-
--   Basic reverse engineering
--   Firmware string scanning
--   Credential harvesting from extracted binaries
-
-Important clarification:
-
-Obfuscation is NOT encryption.
-
-It prevents easy discovery, not determined analysis.
-
-------------------------------------------------------------------------
-
-## Key Derivation
-
-Keys are derived per-device using hardware identifiers and a build-time
-secret (PEPPER).
-
-This ensures:
-
--   Each device has unique encryption keys
--   Data copied between devices cannot be decrypted
--   No static keys embedded in firmware
-
-The PEPPER must be supplied at build time and never committed to version
-control.
-
-------------------------------------------------------------------------
-
-## Best Practices
-
--   Enable Flash Encryption in production
--   Use secure OTA infrastructure
--   Protect build secrets
--   Use different credentials per device when possible
--   Restrict physical access to hardware
--   Audit firmware update pipelines
-
-Security is a system property, not a library feature.
-
-------------------------------------------------------------------------
-
-## Limitations
-
--   Not a full secure element replacement
--   Does not prevent side-channel attacks
--   Does not replace secure boot
--   Does not protect against privileged firmware execution
-
-------------------------------------------------------------------------
+You can always redesign or upgrade the security strategy of your device without permanently locking the hardware. This is precious in small projects or first iterations.
 
 
-platformio.ini example:
 
-[env:OBFUSCATE_ESP32]
-platform = espressif32
-board = esp32dev ;esp32-s3-devkitc-1 ;dfrobot_beetle_esp32c3
-framework = arduino
+ESPfuscate addresses this problem with a **two-layer protection model**.
 
-build_unflags = -std=gnu++11
 
-build_flags = -std=gnu++17
-              ;-DOBF_BUILD_SALT=0X3F2A91C7
-              ;-DOBF_PEPPER=\mypepper\"
-              ;-DOBF_MAX_CT=256
+#### 1️⃣ Compile-Time Obfuscation
+Secret strings are transformed during compilation so they never appear in plaintext inside the final firmware binary.
 
-monitor_speed = 115200
+#### 2️⃣ Hardware-Bound Encryption
+At runtime, secrets are encrypted using an AES-256-GCM key derived from:
 
+- a **device root key stored in NVS**
+- the **unique ESP32 eFuse MAC address**
+- optional **build-time SALT and PEPPER**
+
+This ensures that encrypted data generated on one device **cannot be decrypted on another device**.
+
+---
+
+## ✨ Key Features
+
+| Feature | Implementation | Benefit |
+| :--- | :--- | :--- |
+| Cryptography | AES-256-GCM | Authenticated encryption (confidentiality + integrity) |
+| Key Derivation | HMAC-SHA256 | Secure hardware-bound key derivation |
+| Memory Safety | `mbedtls_platform_zeroize` | Sensitive data wiped from RAM after use |
+| Deterministic Memory Usage | Template-based buffers | No heap allocations (`malloc` / `new`) |
+| Hardware Binding | eFuse MAC address | Prevents firmware cloning attacks |
+
+---
+
+## 📦 Installation
+
+### PlatformIO (Recommended)
+
+Add the library to your `platformio.ini`:
+
+```ini
+lib_deps =
+    https://github.com/AndreaDV01/ESPfuscate.git
+```
+
+---
+
+## 🔧 Build-Time Security Customization
+
+ESPfuscate allows customizing the key derivation parameters at build time.
+
+Define your own SALT and PEPPER values in your build configuration.
+
+Example for PlatformIO:
+
+```ini
+build_flags =
+    -DOBF_SALT=\"MyCustomSalt_8923\"
+    -DOBF_PEPPER=\"SuperSecretCompanyPepper_2024\"
+```
+
+These values ensure that firmware builds are **globally unique**.
+
+⚠️ **Important**
+
+Changing these values after a device has already encrypted data will make previously encrypted data unreadable.
+
+---
+
+## 🧠 Threat Model
+
+ESPfuscate is designed to protect against:
+
+- firmware extraction
+- flash memory dumps
+- firmware cloning attacks
+- static analysis of firmware binaries
+
+ESPfuscate **does NOT protect against**:
+
+- physical compromise of the device
+- runtime debugging attacks
+- invasive hardware attacks
+- full system compromise
+
+For production systems, ESPfuscate should be used **together with ESP32 hardware security features**.
+
+---
+
+## 🔐 Recommended Security Setup
+
+For maximum protection combine ESPfuscate with:
+
+- **ESP32 Flash Encryption**
+- **Secure Boot**
+- **Encrypted OTA updates**
+
+See the official Espressif documentation:
+
+https://docs.espressif.com/projects/esp-idf/en/v5.5.3/esp32/security/index.html
+
+---
+
+## 🛠️ Contributing
+
+Contributions, issues, and feature requests are welcome.
+
+If you plan to propose significant changes, please open an issue first to discuss the design.
+
+---
+
+## 📄 License
+
+This project is licensed under the **MIT License**.

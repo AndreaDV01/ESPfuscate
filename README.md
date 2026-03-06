@@ -8,7 +8,7 @@
 
 It combines **compile-time obfuscation** and **hardware-bound runtime encryption** to make firmware extraction and cloning attacks significantly harder.
 
-ESPfuscate is compatible with both **Arduino** and **ESP-IDF** frameworks and is designed to have **minimal runtime overhead**.
+**ESPfuscate** is compatible with both **Arduino** and **ESP-IDF** frameworks and is designed to have **minimal runtime overhead**.
 
 ---
 
@@ -36,7 +36,7 @@ You can always redesign or upgrade the security strategy of your device without 
 
 
 
-ESPfuscate addresses this problem with a **two-layer protection model**.
+**ESPfuscate** addresses this problem with a **two-layer protection model**.
 
 
 #### 1️⃣ Compile-Time Obfuscation
@@ -80,7 +80,7 @@ lib_deps =
 
 ## 🔧 Build-Time Security Customization
 
-ESPfuscate allows customizing the key derivation parameters at build time.
+**ESPfuscate** allows customizing the key derivation parameters at build time.
 
 Define your own SALT and PEPPER values in your build configuration.
 
@@ -102,27 +102,27 @@ Changing these values after a device has already encrypted data will make previo
 
 ## 🧠 Threat Model
 
-ESPfuscate is designed to protect against:
+**ESPfuscate** is designed to protect against:
 
 - firmware extraction
 - flash memory dumps
 - firmware cloning attacks
 - static analysis of firmware binaries
 
-ESPfuscate **does NOT protect against**:
+**ESPfuscate** does NOT protect against:
 
 - physical compromise of the device
 - runtime debugging attacks
 - invasive hardware attacks
 - full system compromise
 
-For production systems, ESPfuscate should be used **together with ESP32 hardware security features**.
+For production systems, **ESPfuscate** should be used **together with ESP32 hardware security features**.
 
 ---
 
 ## 🔐 Recommended Security Setup
 
-For maximum protection combine ESPfuscate with:
+For maximum protection combine **ESPfuscate** with:
 
 - **ESP32 Flash Encryption**
 - **Secure Boot**

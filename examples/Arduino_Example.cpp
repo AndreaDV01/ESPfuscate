@@ -2,7 +2,7 @@
 #include <WiFi.h>
 #include <Preferences.h>
 #include "lib/ESPping/ESPping.h" 
-#include "../src/ESPfuscate.h" 
+#include <ESPfuscate.h>
 
 Preferences preferences;
 
@@ -92,6 +92,10 @@ bool try_connect() {
     }
 
     Serial.printf("Connecting to: %s", ssid.c_str());
+
+    //Prevent the WiFi library from automatically saving credentials in flash, since we manage it ourselves with encryption
+    esp_wifi_set_storage(WIFI_STORAGE_RAM);
+
     WiFi.begin(ssid.c_str(), pass.c_str());
 
     int attempts = 0;

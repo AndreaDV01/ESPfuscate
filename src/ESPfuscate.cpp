@@ -1,10 +1,10 @@
 #include "ESPfuscate.h"
 
 extern "C" {
-  #include "esp_system.h"
   #include "esp_err.h"
+  #include "esp_mac.h"
+  #include "esp_random.h"
   #include "nvs.h"
-  #include "esp_efuse.h"
   #include "mbedtls/gcm.h"
   #include "mbedtls/hkdf.h"  //#include "mbedtls/md.h"
 }

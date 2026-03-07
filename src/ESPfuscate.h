@@ -65,6 +65,18 @@ constexpr uint32_t mix32(uint32_t x) {
 
 static constexpr uint32_t pepper_hash = fnv1a32(OBF_PEPPER, sizeof(OBF_PEPPER) - 1);
 
+//-------------------- SecureBuffer RAII --------------------
+template <size_t N>
+struct SecureBuffer {
+  std::array<uint8_t, N> b{};
+  uint8_t* data() { return b.data(); }
+  const uint8_t* data() const { return b.data(); }
+  char* c_str() { return reinterpret_cast<char*>(b.data()); }
+  const char* c_str() const { return reinterpret_cast<const char*>(b.data()); }
+  size_t size() const { return b.size(); }
+  ~SecureBuffer() { secure_bzero(b.data(), b.size()); }
+};
+
 struct XorStream {
   uint32_t s;
   constexpr explicit XorStream(uint32_t seed) : s(seed) {}
@@ -138,17 +150,6 @@ struct ObfLit {
 #define OBFUSCATE_FILEHASH (ESPfuscate::fnv1a32(__FILE__, sizeof(__FILE__) - 1))
 #define OBFUSCATE_SALT_OCC (ESPfuscate::salt_from_occurrence((uint32_t)__COUNTER__, (uint32_t)__LINE__, (uint32_t)OBFUSCATE_FILEHASH))
 #define OBFUSCATE(str_lit) (ESPfuscate::ObfLit<sizeof(str_lit)>(str_lit, (uint32_t)OBFUSCATE_SALT_OCC))
-
-//-------------------- SecureBuffer RAII --------------------
-template <size_t N>
-struct SecureBuffer {
-  std::array<uint8_t, N> b{};
-  uint8_t* data() { return b.data(); }
-  const uint8_t* data() const { return b.data(); }
-  char* c_str() { return reinterpret_cast<char*>(b.data()); }
-  size_t size() const { return b.size(); }
-  ~SecureBuffer() { secure_bzero(b.data(), b.size()); }
-};
 
 // -------------------- sealed container --------------------
 struct Sealed {

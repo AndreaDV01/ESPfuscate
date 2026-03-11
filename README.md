@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="docs/logo.jpg" alt="ESPfuscate logo" width="360">
+  <img src="docs/image.jpg" alt="ESPfuscate logo" width="800">
 </p>
 
 # 🛡️ ESPfuscate

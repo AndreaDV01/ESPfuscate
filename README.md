@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="docs/logo.jpg" alt="ESPfuscate logo" width="180">
+</p>
+
 # 🛡️ ESPfuscate
 
 [![PlatformIO Registry](https://img.shields.io/badge/PlatformIO-Registry-orange?logo=platformio)](https://registry.platformio.org/)

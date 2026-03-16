@@ -5,7 +5,7 @@
 # 🛡️ ESPfuscate
 
 [![PlatformIO Registry](https://img.shields.io/badge/PlatformIO-Registry-orange?logo=platformio)](https://registry.platformio.org/)
-[![Framework](https://img.shields.io/badge/Framework-Arduino%20%7C%20ESP--IDF-blue)](#)
+[![Framework](https://img.shields.io/badge/Framework-Arduino%20%7C%20ESP--IDF-blue)](https://github.com/espressif/esp-idf)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 
 **ESPfuscate** is a lightweight security library for the ESP32 ecosystem designed to protect sensitive strings such as API keys, WiFi credentials, and authentication tokens.

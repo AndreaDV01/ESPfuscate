@@ -1,6 +1,6 @@
 {
   "name": "ESPfuscate",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Lightweight secret protection library for ESP32 using compile-time obfuscation and hardware-bound encryption",
   "keywords": [
     "esp32",

@@ -21,7 +21,7 @@
 #include <Arduino.h>
 #include <WiFi.h>
 #include <Preferences.h>
-#include <ESP32ping.h>
+#include <ESP32Ping.h>
 
 #define USE_ESPFUSCATE true //false
 

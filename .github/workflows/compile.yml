@@ -1,0 +1,41 @@
+name: Compile Verification
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - example: examples/Arduino_Basic_Example/Arduino_Basic_Example.ino
+          - example: examples/Arduino_Advanced_Example.cpp
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Cache PlatformIO
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cache/pip
+            ~/.platformio/.cache
+          key: ${{ runner.os }}-pio
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install PlatformIO
+        run: pip install --upgrade platformio
+
+      - name: Compile example
+        run: pio ci -c .github/ci/platformio-ci.ini -e ci --lib="."
+        env:
+          PLATFORMIO_CI_SRC: ${{ matrix.example }}

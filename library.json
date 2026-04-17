@@ -1,23 +1,19 @@
 {
   "name": "ESPfuscate",
-  "version": "0.3.0",
-  "description": "Lightweight secret protection library for ESP32 using compile-time obfuscation and hardware-bound encryption",
-  "keywords": [
-    "esp32",
-    "security",
-    "encryption",
-    "obfuscation",
-    "iot"
-  ],
+  "version": "0.4.0",
+  "description": "Lightweight ESP32 security library with compile-time obfuscation and runtime encryption",
+  "keywords": ["esp32","security","encryption","obfuscation","iot"],
   "repository": {
     "type": "git",
     "url": "https://github.com/AndreaDV01/ESPfuscate.git"
   },
-  "frameworks": [
-    "arduino",
-    "espidf"
+  "authors": [
+    {
+      "name": "AndreaDV01",
+      "maintainer": true
+    }
   ],
-  "platforms": [
-    "espressif32"
-  ]
+  "license": "MIT",
+  "frameworks": ["arduino", "espidf"],
+  "platforms": ["espressif32"]
 }

@@ -77,10 +77,6 @@ static void wifi_event_handler(void*,
                                esp_event_base_t event_base,
                                int32_t event_id,
                                void* event_data) {
-    if (event_base == WIFI_EVENT && event_id == WIFI_EVENT_STA_START) {
-        esp_wifi_connect();
-        return;
-    }
 
     if (event_base == WIFI_EVENT && event_id == WIFI_EVENT_STA_DISCONNECTED) {
         if (s_retry_num < WIFI_MAX_RETRY) {
@@ -115,7 +111,11 @@ static esp_err_t init_nvs() {
 
 static esp_err_t init_wifi() {
     ESP_ERROR_CHECK(esp_netif_init());
-    ESP_ERROR_CHECK(esp_event_loop_create_default());
+    //ESP_ERROR_CHECK(esp_event_loop_create_default());
+    esp_err_t err = esp_event_loop_create_default();
+    if (err != ESP_OK && err != ESP_ERR_INVALID_STATE) {
+        return err;
+    }
     esp_netif_create_default_wifi_sta();
 
     s_wifi_event_group = xEventGroupCreate();
@@ -192,7 +192,7 @@ static bool fetch_location(GeoPayload& out) {
     HttpResponseBuffer response{};
 
     esp_http_client_config_t config = {};
-    config.url = "http://ip-api.com/json/?fields=status,country,regionName,city";
+    config.url = "http://ip-api.com/json/?fields=status,country,regionName,city";     //HTTP geolocation endpoint without authentication.
     config.event_handler = http_event_handler;
     config.user_data = &response;
     config.timeout_ms = 5000;

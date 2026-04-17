@@ -1,3 +1,4 @@
 .vscode
 espidf_build_test
 todolist.txt
+esp-idf.yml

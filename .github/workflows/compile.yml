@@ -13,7 +13,7 @@ jobs:
       matrix:
         include:
           - example: examples/Arduino_Basic_Example/Arduino_Basic_Example.ino
-          - example: examples/Arduino_Advanced_Example.cpp
+          - example: examples/Arduino_Advanced_Example/Arduino_Advanced_Example.cpp
 
     steps:
       - name: Checkout

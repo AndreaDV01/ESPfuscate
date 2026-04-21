@@ -1,5 +1,5 @@
 /*
-  ESPfuscate v0.3.0
+  ESPfuscate v0.4.1
 
   Lightweight security library for ESP32.
   Provides:
@@ -14,7 +14,7 @@
   - SealedBuffer<N>  -> encrypted container for storage/transmission
 
   Notes:
-  - Designed for Arduino and ESP-IDF
+  - Designed for both frameworks Arduino and ESP-IDF 5.x.x (v6.x.x not supported yet)
   - No heap allocations
   - Runtime encryption is device-bound
 

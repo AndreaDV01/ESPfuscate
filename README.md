@@ -7,13 +7,13 @@
 [![PlatformIO Registry](https://img.shields.io/badge/PlatformIO-Registry-orange?logo=platformio)](https://registry.platformio.org/)
 [![Framework](https://img.shields.io/badge/Framework-Arduino%20%7C%20ESP--IDF-blue)](https://github.com/espressif/esp-idf)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
-[![Compile Verification](https://github.com/AndreaDV01/ESPfuscate/actions/workflows/compile.yml/badge.svg?event=push)](https://github.com/AndreaDV01/ESPfuscate/actions/workflows/compile.yml)
+[![Compile Verification](https://github.com/AndreaDV01/ESPfuscate/actions/workflows/arduino_compile.yml/badge.svg?event=push)](https://github.com/AndreaDV01/ESPfuscate/actions/workflows/arduino_compile.yml)
 
 **ESPfuscate** is a lightweight security library for the ESP32 ecosystem designed to protect sensitive strings such as API keys, WiFi credentials, and authentication tokens.
 
 It combines **compile-time obfuscation** and **hardware-bound runtime encryption** to make firmware extraction and cloning attacks significantly harder.
 
-**ESPfuscate** is compatible with both **Arduino** and **ESP-IDF** frameworks and is designed to have **minimal runtime overhead**.
+**ESPfuscate** is compatible with both **Arduino** and **ESP-IDF 5.x.x** frameworks and is designed to have **minimal runtime overhead**.
 
 ---
 
@@ -135,7 +135,7 @@ For maximum protection combine **ESPfuscate** with:
 
 See the official Espressif documentation:
 
-https://docs.espressif.com/projects/esp-idf/en/v5.5.3/esp32/security/index.html
+https://docs.espressif.com/projects/esp-idf/en/v5.5.4/esp32/security/index.html
 
 ---
 

@@ -1,0 +1,9 @@
+name: "espfuscate"
+version: "0.4.1"              
+description: "Lightweight ESP32 security library with compile-time obfuscation and runtime encryption"
+license: "MIT"
+repository: "https://github.com/AndreaDV01/ESPfuscate.git"
+
+#Only ESP-IDF v5.x.x is supported (v6.x.x is not supported yet)
+dependencies:
+  idf: ">=5.1,<6.0"

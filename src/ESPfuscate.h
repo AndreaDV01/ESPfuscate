@@ -1,5 +1,5 @@
 /*
-  ESPfuscate v0.4.1
+  ESPfuscate v0.4.2
 
   Lightweight security library for ESP32.
   Provides:

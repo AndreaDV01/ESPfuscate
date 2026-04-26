@@ -1,5 +1,5 @@
 name: "espfuscate"
-version: "0.4.1"              
+version: "0.4.2"              
 description: "Lightweight ESP32 security library with compile-time obfuscation and runtime encryption"
 license: "MIT"
 repository: "https://github.com/AndreaDV01/ESPfuscate.git"

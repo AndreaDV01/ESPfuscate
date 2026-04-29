@@ -1,6 +1,6 @@
 {
   "name": "ESPfuscate",
-  "version": "0.4.2",
+  "version": "0.4.3",
   "description": "Lightweight ESP32 security library with compile-time obfuscation and runtime encryption",
   "keywords": ["esp32","security","encryption","obfuscation","iot"],
   "repository": {
